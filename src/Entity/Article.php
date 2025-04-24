@@ -14,10 +14,20 @@ class Article
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: "string", length: 255)]
+    #[ORM\Column(length: 255)]
+    #[Assert\Length(
+        min: 5,
+        max: 50,
+        minMessage: "Le nom d'un article doit comporter au moins {{ limit }} caractères",
+        maxMessage: "Le nom d'un article doit comporter au plus {{ limit }} caractères"
+    )]
     private ?string $nom = null;
 
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\NotEqualTo(
+        value: 0,
+        message: "Le prix d'un article ne doit pas être égal à 0"
+    )]
     private ?string $prix = null;
 
     // Getter et Setter pour l'ID

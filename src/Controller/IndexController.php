@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Routing\Annotation\Route;
-
+use App\Form\ArticleType;
 class IndexController extends AbstractController
 {
     private $entityManager;
@@ -54,31 +54,22 @@ class IndexController extends AbstractController
     /**
      * @Route("/article/new", name="new_article", methods={"GET", "POST"})
      */
-    public function new(Request $request): Response
+    public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $article = new Article();
-
-        // Créer le formulaire pour ajouter un article
-        $form = $this->createFormBuilder($article)
-            ->add('nom', TextType::class)
-            ->add('prix', TextType::class)
-            ->add('save', SubmitType::class, ['label' => 'Créer'])
-            ->getForm();
-
-        // Gérer la soumission du formulaire
+        $form = $this->createForm(ArticleType::class, $article);
+        
         $form->handleRequest($request);
-    
         if ($form->isSubmitted() && $form->isValid()) {
-            // Sauvegarder l'article dans la base de données
-            $this->entityManager->persist($article);
-            $this->entityManager->flush();
-
-            // Rediriger vers la liste des articles après l'ajout
+            $entityManager->persist($article);
+            $entityManager->flush();
+            
             return $this->redirectToRoute('article_list');
         }
-
-        // Afficher le formulaire d'ajout d'article
-        return $this->render('articles/new.html.twig', ['form' => $form->createView()]);
+        
+        return $this->render('articles/new.html.twig', [
+            'form' => $form->createView(),
+        ]);
     }
 
     /**
@@ -101,37 +92,22 @@ class IndexController extends AbstractController
     /**
      * @Route("/article/edit/{id}", name="edit_article", methods={"GET", "POST"})
      */
-    public function edit(Request $request, int $id): Response
+    public function edit(int $id, Request $request, EntityManagerInterface $entityManager): Response
     {
-        // Trouver l'article à modifier
-        $article = $this->entityManager->getRepository(Article::class)->find($id);
-
-        // Vérifier si l'article existe
-        if (!$article) {
-            throw $this->createNotFoundException('Article non trouvé');
-        }
-
-        // Créer le formulaire de modification
-        $form = $this->createFormBuilder($article)
-            ->add('nom', TextType::class)
-            ->add('prix', TextType::class)
-            ->add('save', SubmitType::class, ['label' => 'Modifier'])
-            ->getForm();
-
-        // Gérer la soumission du formulaire
+        $article = $entityManager->getRepository(Article::class)->find($id);
+        $form = $this->createForm(ArticleType::class, $article);
         $form->handleRequest($request);
-
+    
         if ($form->isSubmitted() && $form->isValid()) {
-            // Sauvegarder les modifications dans la base de données
-            $this->entityManager->flush();
-
-            // Rediriger vers la liste des articles après la modification
+            $entityManager->flush();
             return $this->redirectToRoute('article_list');
         }
-
-        // Afficher le formulaire de modification
-        return $this->render('articles/edit.html.twig', ['form' => $form->createView()]);
+    
+        return $this->render('articles/edit.html.twig', [
+            'form' => $form->createView()
+        ]);
     }
+    
 
 /**
      * @Route("/article/delete/{id}", name="delete_article", methods={"GET"})

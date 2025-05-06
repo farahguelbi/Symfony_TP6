@@ -5,6 +5,8 @@ namespace App\Entity;
 use App\Repository\ArticleRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use App\Entity\Category;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
 class Article
@@ -59,4 +61,19 @@ class Article
         $this->prix = $prix;
         return $this;
     }
+
+    #[ORM\ManyToOne(inversedBy: 'articles')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Category $category = null;
+    public function getCategory(): ?Category
+    {
+        return $this->category;
+    }
+    
+    public function setCategory(?Category $category): self
+    {
+        $this->category = $category;
+        return $this;
+    }
+        
 }

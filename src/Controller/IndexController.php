@@ -11,6 +11,9 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Form\ArticleType;
+use App\Entity\Category;
+use App\Form\CategoryType;
+
 class IndexController extends AbstractController
 {
     private $entityManager;
@@ -129,5 +132,26 @@ class IndexController extends AbstractController
         // Rediriger vers la liste des articles après la suppression
         return $this->redirectToRoute('article_list');
     }
+
+    #[Route('/category/newCat', name: 'new_category', methods: ['GET', 'POST'])]
+    public function newCategory(Request $request, EntityManagerInterface $em): Response
+    {
+        $category = new Category();
+        $form = $this->createForm(CategoryType::class, $category);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $em->persist($category);
+            $em->flush();
+
+            return $this->redirectToRoute('new_category');
+        }
+
+        return $this->render('category/new.html.twig', [
+            'form' => $form->createView(),
+        ]);
+    }
+
     
 }

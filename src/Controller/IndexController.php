@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Controller;
+use Doctrine\Persistence\ManagerRegistry;
 
 use App\Entity\Article;
 use Doctrine\ORM\EntityManagerInterface;
@@ -13,6 +14,14 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Form\ArticleType;
 use App\Entity\Category;
 use App\Form\CategoryType;
+use App\Form\PropertySearchType;
+use App\Entity\CategorySearch;
+use App\Form\CategorySearchType;
+use App\Entity\PriceSearch;
+use App\Form\PriceSearchType;
+;
+use App\Repository\ArticleRepository;
+use App\Entity\PropertySearch;
 
 class IndexController extends AbstractController
 {
@@ -24,18 +33,28 @@ class IndexController extends AbstractController
         $this->entityManager = $entityManager;
     }
 
-    /**
-     * @Route("/", name="article_list")
-     */
-    public function home(): Response
+    #[Route("/", name: "article_list")]
+    public function home(Request $request, ArticleRepository $articleRepository)
     {
-        // Récupérer tous les articles de la base de données
-        $articles = $this->entityManager->getRepository(Article::class)->findAll();
+        $propertySearch = new PropertySearch();
+        $form = $this->createForm(PropertySearchType::class, $propertySearch);
+        $form->handleRequest($request);
 
-        // Renvoyer la liste des articles dans la vue
-        return $this->render('articles/index.html.twig', ['articles' => $articles]);
+        $articles = [];
+        if ($form->isSubmitted() && $form->isValid()) {
+            $nom = $propertySearch->getNom();
+            if ($nom != "") {
+                $articles = $articleRepository->findBy(['nom' => $nom]);
+            } else {
+                $articles = $articleRepository->findAll();
+            }
+        }
+
+        return $this->render('articles/index.html.twig', [
+            'form' => $form->createView(),
+            'articles' => $articles,
+        ]);
     }
-
     /**
      * @Route("/article/save", name="article_save")
      */
@@ -152,6 +171,49 @@ class IndexController extends AbstractController
             'form' => $form->createView(),
         ]);
     }
+    #[Route('/art_cat', name: 'article_par_cat', methods: ['GET', 'POST'])]
+    public function articlesParCategorie(Request $request, ManagerRegistry $doctrine): Response
+    {
+        $categorySearch = new CategorySearch();
+        $form = $this->createForm(CategorySearchType::class, $categorySearch);
+        $form->handleRequest($request);
 
-    
+        $articles = [];
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $category = $categorySearch->getCategory();
+            if ($category !== null) {
+                $articles = $category->getArticles();
+            } else {
+                $articles = $doctrine->getRepository(Article::class)->findAll();
+            }
+        }
+
+        return $this->render('articles/articlesParCategorie.html.twig', [
+            'form' => $form->createView(),
+            'articles' => $articles
+        ]);
+    }
+    #[Route('/art_prix', name: 'article_par_prix', methods: ['GET'])]
+    public function articlesParPrix(Request $request, EntityManagerInterface $em): Response
+    {
+        $priceSearch = new PriceSearch();
+        $form = $this->createForm(PriceSearchType::class, $priceSearch);
+        $form->handleRequest($request);
+
+        $articles = [];
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $articles = $em->getRepository(Article::class)
+                           ->findByPriceRange(
+                               $priceSearch->getMinPrice(),
+                               $priceSearch->getMaxPrice()
+                           );
+        }
+
+        return $this->render('articles/articlesParPrix.html.twig', [
+            'form' => $form->createView(),
+            'articles' => $articles
+        ]);
+    }
 }
